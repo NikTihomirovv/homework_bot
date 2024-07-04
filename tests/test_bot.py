@@ -8,7 +8,6 @@ from http import HTTPStatus
 import pytest
 import requests
 import telebot
-
 import tests.check_utils as check_utils
 
 old_sleep = time.sleep
