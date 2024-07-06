@@ -5,7 +5,9 @@ from http import HTTPStatus
 
 import requests
 from dotenv import load_dotenv
+from exceptions import ApiError
 from telebot import TeleBot
+
 
 logging.basicConfig(
     level=logging.DEBUG,
@@ -13,6 +15,15 @@ logging.basicConfig(
     filemode='w',
     format='%(asctime)s, %(levelname)s, %(message)s, %(name)s'
 )
+
+console_handler = logging.StreamHandler()
+console_handler.setLevel(logging.INFO)
+console_handler.setFormatter(
+    logging.Formatter('%(asctime)s, %(levelname)s, %(message)s, %(name)s')
+)
+logger = logging.getLogger(__name__)
+logger.addHandler(console_handler)
+
 
 load_dotenv()
 
@@ -33,7 +44,7 @@ HOMEWORK_VERDICTS = {
 
 def check_tokens():
     """Проверяет доступность переменных окружения."""
-    if PRACTICUM_TOKEN and TELEGRAM_TOKEN and TELEGRAM_CHAT_ID:
+    if all([PRACTICUM_TOKEN, TELEGRAM_TOKEN, TELEGRAM_CHAT_ID]):
         return True
     else:
         logging.critical('Отсутствуют переменные окружения.')
@@ -57,7 +68,8 @@ def get_api_answer(timestamp):
             params={'from_date': timestamp}
         )
     except Exception as error:
-        logging.debug(f'Не удалось получить доступ к API: {error}')
+        logging.error(f'Не удалось получить доступ к API: {error}')
+        raise ApiError
 
     if response.status_code != HTTPStatus.OK:
         raise requests.HTTPError(response)
@@ -116,11 +128,12 @@ def main():
                     message = 'Пока ничего нового.'
                 send_message(bot, message)
                 current_timestamp = int(time.time())
-                time.sleep(RETRY_PERIOD)
 
             except Exception as error:
                 message = f'Сбой в работе программы: {error}'
                 send_message(bot, message)
+
+            finally:
                 time.sleep(RETRY_PERIOD)
 
 
